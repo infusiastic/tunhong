@@ -21,12 +21,10 @@
 #
 # or it could be:
 #
-# Dunhuang spells [chn]燉煌[/chn] in Chinese and [tib]ཏུན་ཧོང་[/tib] in
+# Dunhuang spells [c]燉煌[ↄ] in Chinese and [t]ཏུན་ཧོང་[ʇ] in
 # Tibetan. We prefer the Tibetan reading as the name for the parser.
 #
 # depending on the user preference.
-
-# require "active_support"
 
 class Tunhong
 
@@ -38,9 +36,40 @@ class Tunhong
   end
   
   def parse(str)
-    puts "Hello, ཏུན་ཧོང་!"
-    puts str
+    output = ""
+    # mode designates the current language, it can be :chinese, :tibetan, or :other
+    mode = :other
+    str.each_char do |chr|
+      old_mode = mode
+      # first try to see if the mode changes
+      if chinese?(chr)
+        mode = :chinese
+      else
+        mode = :other
+      end
+      # then decide if any tags are to input due to mode change
+      if mode!=old_mode # if no mode change occured
+        if mode==:chinese # if the text switched to chinese
+          output << @zh_start # then add a chinese opening tag
+        elsif old_mode==:chinese # if the text switched back from chinese
+          output << @zh_end # then add a chinese closing tag
+        end
+      end
+      output << chr
+    end
+    output
+  end
+  
+  private
+  
+  def chinese?(chr)
+    chr=="c"
+  end
+  
+  def tibetan?(chr)
+    chr=="t"
   end
 end
 
-Tunhong.new("[c]","[ↄ]","[t]","[ʇ]").parse("A test string of characters.")
+puts "Hello, ཏུན་ཧོང་!"
+puts(Tunhong.new("[c]","[ↄ]","[t]","[ʇ]").parse("A test string of characccters."))
