@@ -3,7 +3,7 @@
 #
 # Tunhong parser
 #
-# A library for Ruby 1.9 to mark Chinese and Tibetan strings up inside the text
+# A library for Ruby 2.0 to mark Chinese and Tibetan strings up inside the text
 # written in another language.
 #
 # The name is taken after Dunhuang Caves in China, containing important
@@ -107,12 +107,17 @@ class Tunhong
   
   # returns true if the character is in one of CJK Unicode ranges  
   def chinese?(chr)
+    (0x2e80..0x2fff).include?(chr.ord) || # CJK Radicals Supplement, Kangxi 
+                                          # Radicals, Ideographic Description 
+                                          # Characters
+    (0x3100..0x312f).include?(chr.ord) || # Bopomofo
+    (0x3190..0x31ef).include?(chr.ord) || # Kanbun, Bopomofo Extended, CJK  
+                                          # Strokes
     (0x4e00..0x9fff).include?(chr.ord) || # CJK Unified Ideographs
+    (0xf900..0xfaff).include?(chr.ord) || # CJK Compatibility Ideographs
     (0x3400..0x4dbf).include?(chr.ord) || # CJK Unified Ideographs Extension A
-    (0x20000..0x2a6df).include?(chr.ord) || # CJK Unified Ideographs Extension B
-    (0x2a700..0x2b73f).include?(chr.ord) || # CJK Unified Ideographs Extension C
-    (0x2b740..0x2b81f).include?(chr.ord) || # CJK Unified Ideographs Extension D
-    (0xf900..0xfaff).include?(chr.ord) # CJK Compatibility Ideographs
+    (0x20000..0x2fa1f).include?(chr.ord)  # CJK Unified Ideographs Extension B,
+                                          # C, D, CJK Compatibility Ideographs                                        # Supplement 
   end
   
   # returns true if the character is in Tibetan Unicode range
