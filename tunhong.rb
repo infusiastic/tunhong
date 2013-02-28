@@ -46,86 +46,148 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-class Tunhong
+module Tunhong
+  class TunhongParser
 
-  # Initialize the parser
-  #
-  # `zh_start` and `zh_end` designate opening and closing tags for Chinese
-  # and `bo_start` and `bo_end` for Tibetan
-  #
-  # the default values are html `<span>` tags with the corresponding `lang`
-  # attributes
-  def initialize(zh_start='<span lang="zh">', zh_end='</span>', bo_start='<span lang="bo">', bo_end='</span>')
-    @zh_start = zh_start
-    @zh_end = zh_end
-    @bo_start = bo_start
-    @bo_end = bo_end
-  end
+    # Initialize the parser
+    #
+    # `markup` is the markup object. It should be or derive from `DefaultMarkup`
+    # class and should implement methods `#chinese`, `#tibetan`, and `#other`
+    # which process chunks of text given to it by the parser and a finalize
+    # method which provides the value returned by the parser `#parse` method if
+    # any.
+    #
+    # `zh_start` and `zh_end` designate opening and closing tags for Chinese
+    # and `bo_start` and `bo_end` for Tibetan
+    #
+    # the default values are html `<span>` tags with the corresponding `lang`
+    # attributes
+    def initialize(markup=DefaultMarkup, zh_start='<span lang="zh">', zh_end='</span>', bo_start='<span lang="bo">', bo_end='</span>')
+      @markup = markup
+
+      @zh_start = zh_start
+      @zh_end = zh_end
+      @bo_start = bo_start
+      @bo_end = bo_end
+    end
   
-  # returns the copy of `str` where Tibetan or Chinese substrings are enclosed in corresponding tags 
-  def parse(str)
-    output = ""
-    # mode designates the current language, it can be :chinese, :tibetan, or :other
-    mode = :other
-    str.each_char do |chr|
-      old_mode = mode
-      # first try to see if the mode changes
-      if chinese?(chr)
-        mode = :chinese
-      elsif tibetan?(chr)
-        mode = :tibetan
+    # parses `str` calling corresponding `markup
+    def parse(str)
+      markup = @markup.new
+      # define start conditions in the beginning
+      start, original_mode = 0, detect_mode(str[0])
+      str.chars.each_with_index do |c, i|
+        mode = detect_mode(c)
+        # if mode changed, give the preceding chunk to the parser and reset
+        # `start` and `original_mode`
+        if mode!=original_mode
+          s = str[start..i-1]
+          markup.send(original_mode, s) unless s==""
+          start, original_mode = i, mode
+        end
+        # in the end, give the last chunk to the parser, finalize markup object
+        # and return
+        if i==str.size-1
+          s = str[start..i]
+          markup.send(original_mode, s) unless s==""
+          return markup.finalize
+        end
+      end
+      #output = ""
+      ## mode designates the current language, it can be :chinese, :tibetan, or :other
+      #mode = :other
+      #str.each_char do |chr|
+      #  old_mode = mode
+      #  # first try to see if the mode changes
+      #  if chinese?(chr)
+      #    mode = :chinese
+      #  elsif tibetan?(chr)
+      #    mode = :tibetan
+      #  else
+      #    mode = :other
+      #  end
+      #  # then decide if any tags are to input due to mode change
+      #  if mode!=old_mode
+      #    # first the closing tags
+      #    if old_mode==:chinese
+      #      output << @zh_end
+      #    elsif old_mode==:tibetan
+      #      output << @bo_end
+      #    end
+      #    # then the opening tags
+      #    if mode==:chinese
+      #      output << @zh_start
+      #    elsif mode==:tibetan
+      #      output << @bo_start
+      #    end
+      #  end
+      #  output << chr
+      #end
+      ## add closing tags at the end of the string
+      #if mode==:chinese
+      #  output << @zh_end
+      #elsif mode==:tibetan
+      #  output << @bo_end
+      #end
+      #output
+    end
+  
+    private
+
+    # detect current mode for character c
+    def detect_mode(c)
+      if chinese?(c)
+       return :chinese
+      elsif tibetan?(c)
+       return :tibetan
       else
-        mode = :other
+       return :other
       end
-      # then decide if any tags are to input due to mode change
-      if mode!=old_mode
-        # first the closing tags
-        if old_mode==:chinese
-          output << @zh_end
-        elsif old_mode==:tibetan
-          output << @bo_end
-        end
-        # then the opening tags
-        if mode==:chinese
-          output << @zh_start
-        elsif mode==:tibetan
-          output << @bo_start
-        end
-      end
-      output << chr
     end
-    # add closing tags at the end of the string
-    if mode==:chinese
-      output << @zh_end
-    elsif mode==:tibetan
-      output << @bo_end
+  
+    # returns true if the character is in one of CJK Unicode ranges  
+    def chinese?(chr)
+      (0x2e80..0x2fff).include?(chr.ord) || # CJK Radicals Supplement, Kangxi 
+                                            # Radicals, Ideographic Description 
+                                            # Characters
+      (0x3100..0x312f).include?(chr.ord) || # Bopomofo
+      (0x3190..0x31ef).include?(chr.ord) || # Kanbun, Bopomofo Extended, CJK  
+                                            # Strokes
+      (0x4e00..0x9fff).include?(chr.ord) || # CJK Unified Ideographs
+      (0xf900..0xfaff).include?(chr.ord) || # CJK Compatibility Ideographs
+      (0x3400..0x4dbf).include?(chr.ord) || # CJK Unified Ideographs Extension A
+      (0x20000..0x2fa1f).include?(chr.ord)  # CJK Unified Ideographs Extension B,
+                                            # C, D, CJK Compatibility
+                                            # Ideographs Supplement 
     end
-    output
+  
+    # returns true if the character is in Tibetan Unicode range
+    def tibetan?(chr)
+      (0x0f00..0xfff).include?(chr.ord)
+    end
   end
   
-  private
-  
-  # returns true if the character is in one of CJK Unicode ranges  
-  def chinese?(chr)
-    (0x2e80..0x2fff).include?(chr.ord) || # CJK Radicals Supplement, Kangxi 
-                                          # Radicals, Ideographic Description 
-                                          # Characters
-    (0x3100..0x312f).include?(chr.ord) || # Bopomofo
-    (0x3190..0x31ef).include?(chr.ord) || # Kanbun, Bopomofo Extended, CJK  
-                                          # Strokes
-    (0x4e00..0x9fff).include?(chr.ord) || # CJK Unified Ideographs
-    (0xf900..0xfaff).include?(chr.ord) || # CJK Compatibility Ideographs
-    (0x3400..0x4dbf).include?(chr.ord) || # CJK Unified Ideographs Extension A
-    (0x20000..0x2fa1f).include?(chr.ord)  # CJK Unified Ideographs Extension B,
-                                          # C, D, CJK Compatibility Ideographs                                        # Supplement 
-  end
-  
-  # returns true if the character is in Tibetan Unicode range
-  def tibetan?(chr)
-    (0x0f00..0xfff).include?(chr.ord)
+  # This is the default markup class to derive from.
+  # It does not really change the text.
+  # 
+  # The markup object should respond to methods corresponding to the modes of
+  # the `TunhongParser` class, and a finalize method that provides a return
+  # value for the parser’s `#parse` method.
+  class DefaultMarkup
+    def initialize
+      @output = ""
+    end
+
+    def method_missing(method, *args, &block)
+      @output << args[0]
+    end
+    
+    def finalize
+      return @output
+    end
   end
 end
 
 # test_string = "Dunhuang spells 燉煌 in Chinese and ཏུན་ཧོང་ in Tibetan."
 # puts(Tunhong.new('[c]','[ↄ]','[t]','[ʇ]').parse(test_string))
-# puts(Tunhong.new().parse(test_string))
+# puts(Tunhong::TunhongParser.new().parse(test_string))
