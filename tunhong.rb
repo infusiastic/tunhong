@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby
-# encoding: utf-8
 #
 # Tunhong parser
 #
@@ -13,7 +12,7 @@
 # was chosen as the name for the parser.
 #
 # To illustrate the idea, the result of parsing the first sentence of the
-# previous paragraph could be:
+# previous paragraph with `TagMarkup` could be:
 #
 # Dunhuang spells <span lang="zh">燉煌</span> in Chinese and <span lang="bo">
 # ཏུན་ཧོང་</span> in Tibetan.
@@ -24,9 +23,11 @@
 #
 # depending on the user preference.
 #
-# Version 42
+# Additional markups can be written to perform different tasks.
 #
-# Copyright © 2012 Demian Terentev
+# Version 42.1
+#
+# Copyright © 2012-2013 Demian Terentev
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -49,14 +50,26 @@
 module Tunhong
   class TunhongParser
 
-    # Initialize the parser
+    # Initialize the parser.
     #
-    # `markup` is the markup object. It should be or derive from `DefaultMarkup`
-    # class and should implement methods `#chinese`, `#tibetan`, and `#other`
-    # which process chunks of text given to it by the parser and a finalize
-    # method which provides the value returned by the parser `#parse` method if
-    # any.
+    # If the first of `*args` is present, it should be a class of the markup
+    # object. The rest of args then are default arguments to construct it.
+    #
+    # Markup object should be or derive from `DefaultMarkup` class and should
+    # implement methods corresponding to `@modes` below which process chunks of
+    # text given to it by the parser and a finalize method which provides the
+    # value returned by the parser `#parse` method if any.
     def initialize(*args)
+      # All the different modes supported by the parser.
+      #
+      # Modes will be tested in given order, thus attention should be given so
+      # that the don’t shadow each other. For every mode there should be a
+      # corresponding `#mode?(c)` method returning `true` if `c` should trigger
+      # switching to the mode.
+      #
+      # Currently, only Chinese and Tibetan is detected, additional modes may be
+      # added later.
+      @modes = [:chinese, :tibetan, :other]
       @markup = args.shift || DefaultMarkup
       @markup_args = args
     end
@@ -89,34 +102,33 @@ module Tunhong
 
     # Detect current mode for character c.
     def detect_mode(c)
-      if chinese?(c)
-       return :chinese
-      elsif tibetan?(c)
-       return :tibetan
-      else
-       return :other
-      end
+      @modes.each {|mode| return mode if send("#{mode}?", c)}
     end
   
     # Return true if the character is in one of CJK Unicode ranges
-    def chinese?(chr)
-      (0x2e80..0x2fff).include?(chr.ord) || # CJK Radicals Supplement, Kangxi 
-                                            # Radicals, Ideographic Description 
-                                            # Characters
-      (0x3100..0x312f).include?(chr.ord) || # Bopomofo
-      (0x3190..0x31ef).include?(chr.ord) || # Kanbun, Bopomofo Extended, CJK  
-                                            # Strokes
-      (0x4e00..0x9fff).include?(chr.ord) || # CJK Unified Ideographs
-      (0xf900..0xfaff).include?(chr.ord) || # CJK Compatibility Ideographs
-      (0x3400..0x4dbf).include?(chr.ord) || # CJK Unified Ideographs Extension A
-      (0x20000..0x2fa1f).include?(chr.ord)  # CJK Unified Ideographs Extension B,
-                                            # C, D, CJK Compatibility
-                                            # Ideographs Supplement 
+    def chinese?(c)
+      (0x2e80..0x2fff).include?(c.ord) || # CJK Radicals Supplement, Kangxi 
+                                          # Radicals, Ideographic Description 
+                                          # Characters
+      (0x3100..0x312f).include?(c.ord) || # Bopomofo
+      (0x3190..0x31ef).include?(c.ord) || # Kanbun, Bopomofo Extended, CJK  
+                                          # Strokes
+      (0x4e00..0x9fff).include?(c.ord) || # CJK Unified Ideographs
+      (0xf900..0xfaff).include?(c.ord) || # CJK Compatibility Ideographs
+      (0x3400..0x4dbf).include?(c.ord) || # CJK Unified Ideographs Extension A
+      (0x20000..0x2fa1f).include?(c.ord)  # CJK Unified Ideographs Extension B,
+                                          # C, D, CJK Compatibility Ideographs
+                                          # Supplement 
     end
   
     # Return true if the character is in Tibetan Unicode range
-    def tibetan?(chr)
-      (0x0f00..0xfff).include?(chr.ord)
+    def tibetan?(c)
+      (0x0f00..0xfff).include?(c.ord)
+    end
+    
+    # Fallback mode
+    def other?(c)
+      true
     end
   end
   
