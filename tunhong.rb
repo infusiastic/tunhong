@@ -173,4 +173,13 @@ module Tunhong
       end
     end
   end
+  
+  # Silent markup ignores all modes and does not output anything.
+  # If you want actions only for specific modes, you can subclass it, then
+  # define only the methods for necessary modes.
+  class SilentMarkup  < DefaultMarkup
+    def method_missing(method, *args, &block)
+      # Do nothing.
+    end
+  end
 end

@@ -18,4 +18,8 @@ describe TunhongParser do
     TunhongParser.new(TagMarkup, :chinese => ['[c]', '[ↄ]'], :tibetan => ['[t]','[ʇ]']).parse("Some 漢字 and བོད་ཡིག་.").must_equal(
       'Some [c]漢字[ↄ] and [t]བོད་ཡིག་[ʇ].')
   end
+  
+  it "must output empty string with silent markup" do
+    TunhongParser.new(SilentMarkup).parse("I like 香蕉!").must_equal ""
+  end
 end
