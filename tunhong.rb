@@ -56,85 +56,38 @@ module Tunhong
     # which process chunks of text given to it by the parser and a finalize
     # method which provides the value returned by the parser `#parse` method if
     # any.
-    #
-    # `zh_start` and `zh_end` designate opening and closing tags for Chinese
-    # and `bo_start` and `bo_end` for Tibetan
-    #
-    # the default values are html `<span>` tags with the corresponding `lang`
-    # attributes
-    def initialize(markup=DefaultMarkup, zh_start='<span lang="zh">', zh_end='</span>', bo_start='<span lang="bo">', bo_end='</span>')
-      @markup = markup
-
-      @zh_start = zh_start
-      @zh_end = zh_end
-      @bo_start = bo_start
-      @bo_end = bo_end
+    def initialize(*args)
+      @markup = args.shift || DefaultMarkup
+      @markup_args = args
     end
   
-    # parses `str` calling corresponding `markup
+    # Parse `str` calling corresponding `markup` methods
     def parse(str)
-      markup = @markup.new
+      markup = @markup.new(*@markup_args)
       # define start conditions in the beginning
       start, original_mode = 0, detect_mode(str[0])
       str.chars.each_with_index do |c, i|
         mode = detect_mode(c)
-        # if mode changed, give the preceding chunk to the parser and reset
-        # `start` and `original_mode`
+        # If mode changed, give the preceding chunk to the parser and reset
+        # `start` and `original_mode`.
         if mode!=original_mode
           s = str[start..i-1]
           markup.send(original_mode, s) unless s==""
           start, original_mode = i, mode
         end
-        # in the end, give the last chunk to the parser, finalize markup object
-        # and return
+        # In the end, give the last chunk to the parser, finalize markup object
+        # and return.
         if i==str.size-1
           s = str[start..i]
           markup.send(original_mode, s) unless s==""
           return markup.finalize
         end
       end
-      #output = ""
-      ## mode designates the current language, it can be :chinese, :tibetan, or :other
-      #mode = :other
-      #str.each_char do |chr|
-      #  old_mode = mode
-      #  # first try to see if the mode changes
-      #  if chinese?(chr)
-      #    mode = :chinese
-      #  elsif tibetan?(chr)
-      #    mode = :tibetan
-      #  else
-      #    mode = :other
-      #  end
-      #  # then decide if any tags are to input due to mode change
-      #  if mode!=old_mode
-      #    # first the closing tags
-      #    if old_mode==:chinese
-      #      output << @zh_end
-      #    elsif old_mode==:tibetan
-      #      output << @bo_end
-      #    end
-      #    # then the opening tags
-      #    if mode==:chinese
-      #      output << @zh_start
-      #    elsif mode==:tibetan
-      #      output << @bo_start
-      #    end
-      #  end
-      #  output << chr
-      #end
-      ## add closing tags at the end of the string
-      #if mode==:chinese
-      #  output << @zh_end
-      #elsif mode==:tibetan
-      #  output << @bo_end
-      #end
-      #output
     end
   
     private
 
-    # detect current mode for character c
+    # Detect current mode for character c.
     def detect_mode(c)
       if chinese?(c)
        return :chinese
@@ -145,7 +98,7 @@ module Tunhong
       end
     end
   
-    # returns true if the character is in one of CJK Unicode ranges  
+    # Return true if the character is in one of CJK Unicode ranges
     def chinese?(chr)
       (0x2e80..0x2fff).include?(chr.ord) || # CJK Radicals Supplement, Kangxi 
                                             # Radicals, Ideographic Description 
@@ -161,7 +114,7 @@ module Tunhong
                                             # Ideographs Supplement 
     end
   
-    # returns true if the character is in Tibetan Unicode range
+    # Return true if the character is in Tibetan Unicode range
     def tibetan?(chr)
       (0x0f00..0xfff).include?(chr.ord)
     end
@@ -174,7 +127,7 @@ module Tunhong
   # the `TunhongParser` class, and a finalize method that provides a return
   # value for the parser’s `#parse` method.
   class DefaultMarkup
-    def initialize
+    def initialize(*args)
       @output = ""
     end
 
@@ -186,8 +139,26 @@ module Tunhong
       return @output
     end
   end
+  
+  # Tag markup delimits chuncks with opening and closing tags.
+  #
+  # Tags can be given as hash of `{:mode => ['opening_tag','closing_tag'],...}`
+  #
+  # By default Chinese and Tibetan text is enclosed in html `span` tags with the
+  # appropriate `lang` attribute. This is more of a tribute to the original
+  # version of the parser.
+  class TagMarkup < DefaultMarkup
+    def initialize(*args)
+      @tags = args[0] || {:chinese => ['<span lang="zh">', '</span>'], :tibetan => ['<span lang="bo">', '</span>']}
+      super
+    end
+    
+    def method_missing(method, *args, &block)
+      if @tags.has_key? method
+        @output << @tags[method][0] << args[0] << @tags[method][1]
+      else
+        super
+      end
+    end
+  end
 end
-
-# test_string = "Dunhuang spells 燉煌 in Chinese and ཏུན་ཧོང་ in Tibetan."
-# puts(Tunhong.new('[c]','[ↄ]','[t]','[ʇ]').parse(test_string))
-# puts(Tunhong::TunhongParser.new().parse(test_string))
