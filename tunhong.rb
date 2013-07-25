@@ -1,33 +1,6 @@
-#!/usr/bin/env ruby
-#
 # Tunhong parser
 #
-# A library for Ruby 2.0 to mark Chinese and Tibetan strings up inside the text
-# written in another language.
-#
-# The name is taken after Dunhuang Caves in China, containing important
-# manuscripts in both Chinese and Tibetan.
-# 
-# Dunhuang spells 燉煌 in Chinese and ཏུན་ཧོང་ in Tibetan. The Tibetan reading
-# was chosen as the name for the parser.
-#
-# To illustrate the idea, the result of parsing the first sentence of the
-# previous paragraph with `TagMarkup` could be:
-#
-# Dunhuang spells <span lang="zh">燉煌</span> in Chinese and <span lang="bo">
-# ཏུན་ཧོང་</span> in Tibetan.
-#
-# or it could be:
-#
-# Dunhuang spells [c]燉煌[ↄ] in Chinese and [t]ཏུན་ཧོང་[ʇ] in Tibetan.
-#
-# depending on the user preference.
-#
-# Additional markups can be written to perform different tasks.
-#
-# Version 42.1
-#
-# Copyright © 2012-2013 Demian Terentev
+# Copyright © 2012-2013 Demian Terentev <demian@infusiastic.me>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -154,7 +127,7 @@ module Tunhong
   
   # Tag markup delimits chuncks with opening and closing tags.
   #
-  # Tags can be given as hash of `{:mode => ['opening_tag','closing_tag'],...}`
+  # Tags can be given as hash of `{:mode => ['opening_tag','closing_tag'], ...}`
   #
   # By default Chinese and Tibetan text is enclosed in html `span` tags with the
   # appropriate `lang` attribute. This is more of a tribute to the original
@@ -177,7 +150,7 @@ module Tunhong
   # Silent markup ignores all modes and does not output anything.
   # If you want actions only for specific modes, you can subclass it, then
   # define only the methods for necessary modes.
-  class SilentMarkup  < DefaultMarkup
+  class SilentMarkup < DefaultMarkup
     def method_missing(method, *args, &block)
       # Do nothing.
     end
