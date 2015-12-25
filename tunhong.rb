@@ -80,20 +80,23 @@ module Tunhong
   
     # Return true if the character is in one of CJK Unicode ranges
     def chinese?(c)
+      (0x2000..0x2069).include?(c.ord) || # General Punctuation
       (0x2e80..0x2fff).include?(c.ord) || # CJK Radicals Supplement, Kangxi 
                                           # Radicals, Ideographic Description 
                                           # Characters
+      (0x3000..0x303f).include?(c.ord) || # Punctuation
       (0x3100..0x312f).include?(c.ord) || # Bopomofo
       (0x3190..0x31ef).include?(c.ord) || # Kanbun, Bopomofo Extended, CJK  
                                           # Strokes
       (0x4e00..0x9fff).include?(c.ord) || # CJK Unified Ideographs
       (0xf900..0xfaff).include?(c.ord) || # CJK Compatibility Ideographs
       (0x3400..0x4dbf).include?(c.ord) || # CJK Unified Ideographs Extension A
+      (0xff00..0xffef).include?(c.ord) || # Halfwidth and Fullwidth Forms
       (0x20000..0x2fa1f).include?(c.ord)  # CJK Unified Ideographs Extension B,
                                           # C, D, CJK Compatibility Ideographs
                                           # Supplement 
     end
-  
+    
     # Return true if the character is in Tibetan Unicode range
     def tibetan?(c)
       (0x0f00..0xfff).include?(c.ord)
